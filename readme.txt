@@ -1,0 +1,1 @@
+StarterCode folder contains the index.html file that can be opened

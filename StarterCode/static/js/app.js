@@ -1,4 +1,6 @@
- function init() {
+
+
+function init() {
 	let selector=d3.select("#selDataset");
 	let url="https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json";
 	d3.json(url).then(data=>{
@@ -12,7 +14,7 @@
   }
 
 
- function optionChanged(newsample) {
+function optionChanged(newsample) {
 	getmetadata(newsample);
 	buildcharts(newsample);
   }
@@ -33,90 +35,76 @@ function getmetadata(sample) {
   }
  
  
+function normalize(val, max, min) { 
+    if(max - min === 0) return 0; // or 0, it's up to you
+	let res=Math.abs((val-1500)/3000);
+	res=Math.trunc(res*16777215);
+	res=res.toString(16);
+	return res;
+}
+
+ 
 function buildcharts(sample) {
 	let url="https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json";
-	let oi=[];
-	let sv=[];
+	let result=[];
+	let ziplist=[];
 	
 	d3.json(url).then(data=>{
 		let thedata=data.samples;
 		let filteredarray=thedata.filter(sampleobj=>sampleobj.id==sample);
-		let result=filteredarray[0];
-		console.log(result);
-		oi=result.otu_ids;
-		sv=result.sample_values;
-		
-		/*
-		console.log(result);
-		let oi=[];
-		let y=[];
-		
-		for (let i=0;i<thedata.length;i++){
-			oi.push(result.otu_ids[i]);
+		result=filteredarray[0];
+
+		//bar plot
+		for (let i=0;i<result.otu_ids.length;i++){
+			ziplist.push([
+				'OTU '+result.otu_ids[i],
+				result.sample_values[i],
+				result.otu_labels[i],
+			]);
 		}
-		*/
+		ziplist.sort((a,b)=>-a[1]+b[1]);
+		ziplist=ziplist.slice(0,10);
+		data = [{type: 'bar', orientation: 'h',
+		x: ziplist.map(a=>a[1]), y: ziplist.map(a=>a[0]),
+		text: ziplist.map(a=>a[2])
+		}];
+		data.reverse();
+		Plotly.newPlot("bar", data);
 		
-		//let firstsample=idnames[0];
-		//optionChanged(firstsample);
-		//*/
-	let sa=parallelSort([sv,oi]);
-	console.log(sa);
-	sv=sa[0];
-	oi=sa[1];
-	sv=sv.slice(0,10);
-	oi=oi.slice(0,10);
-	let oil=[];
-	for (let i=0;i<oi.length;i++){
-		oil.push("OTU "+oi[i]);
-	}
-	console.log(sv);
-	console.log(oi);
-	console.log(oil);
-	data = [{type: 'bar', orientation: 'h', x: sv, y: oil}];
-	Plotly.newPlot("bar", data);
-	});
+		//bubble plot
+		for (let i=0;i<result.otu_ids.length;i++){
+			ziplist.push([
+				result.otu_ids[i],
+				result.sample_values[i],
+				result.otu_labels[i],
+				
+				Math.trunc(result.otu_ids[i],15),
+				Math.trunc(result.otu_ids[i],9),
+				result.otu_ids[3],
+				"#" + normalize(result.otu_ids[i],16777215,0),
+			]);
+		}
+		// sort
+		ziplist.sort((a,b)=>-a[1]+b[1]);
+		console.log(ziplist);
+		data = [{
+			mode:'markers',
+			y: ziplist.map(a=>a[1]), x: ziplist.map(a=>a[0]),
+			text: ziplist.map(a=>a[2]),
+			marker:{size: ziplist.map(a=>a[1]),
+				color: ziplist.map(a=>a[6])
+			}
+		}];
+		
+		var layout = {
+			title: 'Sample: OTU '+sample,
+			showlegend: false,
+			};
 
-	/*
-	d3.json(url).then(data=>{
-		let metadata=data.metadata;
-		let filteredarray=metadata.filter(sampleobj=>sampleobj.id==sample);
-		let result=filteredarray[0];
-		let panel=d3.select("#sample-metadata");
-		panel.html("");
-		for (key in result){
-			panel.append("h6").text(`${key.toUpperCase()}: ${result[key]}`);
-		};
+		Plotly.newPlot("bubble", data,layout);
 	});
-	*/
-	
-// Access the website and use .then to operate on the data
-// Filter the data for the object with the desired sample number (the id)
-// Pull the desired information (ids, labels, values) from your filtered data
-// Build a Bubble Chart
-// Slice the data for your bar chart and order it (you can just use reverse)
-// Build a Horizontal Bar Chart
   }
   
-  
-function parallelSort(arrays, comparator = (a, b) => (a > b) ? -1 : (a < b) ? 1 : 0) {
-  let arrayKeys = Object.keys(arrays);
-  let sortableArray = Object.values(arrays)[0];
-  let indexes = Object.keys(sortableArray);
-  let sortedIndexes = indexes.sort((a, b) => comparator(sortableArray[a], sortableArray[b]));
-
-  let sortByIndexes = (array, sortedIndexes) => sortedIndexes.map(sortedIndex => array[sortedIndex]);
-
-  if (Array.isArray(arrays)) {
-    return arrayKeys.map(arrayIndex => sortByIndexes(arrays[arrayIndex], sortedIndexes));
-  } else {
-    let sortedArrays = {};
-    arrayKeys.forEach((arrayKey) => {
-      sortedArrays[arrayKey] = sortByIndexes(arrays[arrayKey], sortedIndexes);
-    });
-    return sortedArrays;
-  }
-}
-
   
   // Initialize the dashboard
   init();
